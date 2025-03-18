@@ -5,6 +5,8 @@ from math import sin, cos, tan, radians, pi
 import json
 # Pygame setup
 pygame.init()
+CUBE_DIMS = (2, 2, 2)
+
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
@@ -22,16 +24,45 @@ faces = [
     (0, 3, 7, 4),  # Left
     (1, 2, 6, 5),  # Right
 ]
-CUBE_DIMS = (3, 3, 1)
 
+if not (CUBE_DIMS[0] == CUBE_DIMS[1] == CUBE_DIMS[2]):
+    print("INVALID CUBE DIMENSIONS")
+    exit() 
 
-class DIR:
-    X_UP= [[1, 0, 1], [0, 1, 0], [1, 0, 1]]
-    X_DOWN= [[1, 1, 0], [1, 0, 0], [0, 1, 0]] # flipped right to left
-    Y_UP=[[2, 2, 2], [2, 3, 2], [2, 2, 2]] # bottom left
-    Y_DOWN=[[3, 3, 3], [3, 2, 3],[ 3, 3, 2]] # flipped top to bottom 
-    Z_UP = [[5, 4, 4], [4, 5, 4], [4, 4, 5]] # flipped top to bottom
-    Z_DOWN=[[4, 5, 4], [5, 4, 5], [4, 5, 4]]
+x_up = []
+x_down = []
+y_up = []
+y_down =[]
+z_up = []
+z_down = []
+
+def gen_colors(cube_dims: tuple[int, int, int]):
+    for _ in range(cube_dims[1]):
+        x_up_arr = []
+        x_down_arr = []
+        for _ in range(cube_dims[2]):
+            x_up_arr.append(0)
+            x_down_arr.append(1)
+        x_up.append(x_up_arr)
+        x_down.append(x_down_arr)
+
+        z_up_arr = []
+        z_down_arr = []
+
+        for _ in range(cube_dims[0]):
+            z_up_arr.append(4)
+            z_down_arr.append(5)
+        z_up.append(z_up_arr)
+        z_down.append(z_down_arr)
+    for _ in range(cube_dims[0]):
+        y_up_arr = []
+        y_down_arr = []
+        for _ in range(cube_dims[2]):
+            y_up_arr.append(2)
+            y_down_arr.append(3)
+        y_up.append(y_up_arr)
+        y_down.append(y_down_arr)
+
 
 def check_dir(p):
     current_x, current_y, current_z = (9999, 9999, 9999)
@@ -69,7 +100,7 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = DIR.X_UP[unit_y][unit_z] if current_x > 0 else DIR.X_DOWN[(CUBE_DIMS[1]-1)-unit_y][(CUBE_DIMS[2]-1)-unit_z]
+        color = x_up[unit_y][unit_z] if current_x > 0 else x_down[(CUBE_DIMS[1]-1)-unit_y][(CUBE_DIMS[2]-1)-unit_z]
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -78,14 +109,14 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
 
         # y is the x, z is the y
-        color = DIR.Y_UP[unit_x][unit_z] if current_y > 0 else DIR.Y_DOWN[(CUBE_DIMS[2]-1)-unit_z][unit_x]
+        color = y_up[unit_x][unit_z] if current_y > 0 else y_down[(CUBE_DIMS[2]-1)-unit_z][unit_x]
     if not current_z == -9999:
         average_x = sum_x/800
         average_y = sum_y/800 
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = DIR.Z_UP[(CUBE_DIMS[1]-2)-unit_y][unit_x] if current_z > 0 else DIR.Z_DOWN[unit_y][unit_x]
+        color = z_up[(CUBE_DIMS[1]-2)-unit_y][unit_x] if current_z > 0 else z_down[unit_y][unit_x]
     return color
 
 
@@ -215,37 +246,6 @@ FORWARD = [[0, 0, 0],
 DOWNARDS = [[0, 0, 0],
            [0, 0, 0], 
            [0, 0, 0]]
-color_faces = [
-    # Front face (all GREEN - 0)
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-    
-    # Back face (all BLUE - 1)
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-    
-    # Bottom face (all YELLOW - 2)
-    2, 2, 2,
-    2, 2, 2,
-    2, 2, 2,
-    
-    # Top face (all WHITE - 3)
-    3, 3, 3,
-    3, 3, 3,
-    3, 3, 3,
-    
-    # Left face (all ORANGE - 4)
-    4, 4, 4,
-    4, 4, 4,
-    4, 4, 4,
-    
-    # Right face (all RED - 5)
-    5, 5, 5,
-    5, 5, 5,
-    5, 5, 5
-]
 
 def accumulate_faces(cubes, faces=faces):
     accumulated_faces = []
@@ -295,6 +295,11 @@ cube_y = (CUBE_DIMS[1] - 1)/2
 cube_z = (CUBE_DIMS[2] - 1)/2
 cubes = create_cubes(CUBE_DIMS)
 
+gen_colors(CUBE_DIMS)
+
+print(x_up)
+print(y_down)
+print(z_up )
 while running:
 
     clock.tick(60)
