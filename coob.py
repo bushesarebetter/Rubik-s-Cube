@@ -22,13 +22,15 @@ faces = [
     (0, 3, 7, 4),  # Left
     (1, 2, 6, 5),  # Right
 ]
+CUBE_DIMS = (3, 3, 1)
+
 
 class DIR:
-    X_UP= [[0, 0, 0], [0, 1, 0], [0, 0, 0]]
-    X_DOWN= [[1, 1, 1], [1, 0, 1], [1, 1, 1]]
+    X_UP= [[1, 0, 1], [0, 1, 0], [1, 0, 1]]
+    X_DOWN= [[1, 1, 0], [1, 0, 0], [0, 1, 0]] # flipped right to left
     Y_UP=[[2, 2, 2], [2, 3, 2], [2, 2, 2]] # bottom left
-    Y_DOWN=[[3, 3, 3], [3, 2, 3],[ 3, 3, 3]]
-    Z_UP = [[5, 4, 4], [4, 5, 4], [4, 4, 5]]
+    Y_DOWN=[[3, 3, 3], [3, 2, 3],[ 3, 3, 2]] # flipped top to bottom 
+    Z_UP = [[5, 4, 4], [4, 5, 4], [4, 4, 5]] # flipped top to bottom
     Z_DOWN=[[4, 5, 4], [5, 4, 5], [4, 5, 4]]
 
 def check_dir(p):
@@ -67,7 +69,7 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = DIR.X_UP[unit_y][unit_z] if current_x > 0 else DIR.X_DOWN[unit_y][unit_z]
+        color = DIR.X_UP[unit_y][unit_z] if current_x > 0 else DIR.X_DOWN[(CUBE_DIMS[1]-1)-unit_y][(CUBE_DIMS[2]-1)-unit_z]
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -76,14 +78,14 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
 
         # y is the x, z is the y
-        color = DIR.Y_UP[unit_x][unit_z] if current_y > 0 else DIR.Y_DOWN[unit_x][unit_z]
+        color = DIR.Y_UP[unit_x][unit_z] if current_y > 0 else DIR.Y_DOWN[(CUBE_DIMS[2]-1)-unit_z][unit_x]
     if not current_z == -9999:
         average_x = sum_x/800
         average_y = sum_y/800 
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = DIR.Z_UP[unit_y][unit_x] if current_z > 0 else DIR.Z_DOWN[unit_y][unit_x]
+        color = DIR.Z_UP[(CUBE_DIMS[1]-2)-unit_y][unit_x] if current_z > 0 else DIR.Z_DOWN[unit_y][unit_x]
     return color
 
 
@@ -288,7 +290,6 @@ rot_x = 0
 rot_y = 0
 rot_z = 0
 vel = 0.1
-CUBE_DIMS = (3, 3, 3)
 cube_x = (CUBE_DIMS[0] - 1)/2
 cube_y = (CUBE_DIMS[1] - 1)/2
 cube_z = (CUBE_DIMS[2] - 1)/2
