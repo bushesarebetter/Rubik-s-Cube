@@ -3,18 +3,18 @@ import pygame
 import numpy as np
 from math import sin, cos, tan, radians, pi
 import json
+
+
+CUBE_DIM = 3 # IMPORTANT
+
+
 # Pygame setup
 pygame.init()
-CUBE_DIMS = (2, 2, 2)
-
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
-basic = np.array([
-    [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],  
-    [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
-]) * 100
+cube_pos = np.array([0, 0, 3000]) # z is distance from cam
 
 faces = [
     (0, 1, 2, 3),  # Front
@@ -24,10 +24,23 @@ faces = [
     (0, 3, 7, 4),  # Left
     (1, 2, 6, 5),  # Right
 ]
+# Cube edges
+edges = [
+    (0, 1), (1, 2), (2, 3), (3, 0),
+    (4, 5), (5, 6), (6, 7), (7, 4),
+    (0, 4), (1, 5), (2, 6), (3, 7)
+]
 
-if not (CUBE_DIMS[0] == CUBE_DIMS[1] == CUBE_DIMS[2]):
-    print("INVALID CUBE DIMENSIONS")
-    exit() 
+COLORES = [
+    (0, 255, 0),
+    (0, 0, 255),
+    (255, 255, 0),
+    (255, 255, 255),
+    (255, 165, 0),
+    (255, 0, 0) 
+    ]
+                   
+ 
 
 x_up = []
 x_down = []
@@ -62,7 +75,6 @@ def gen_colors(cube_dims: tuple[int, int, int]):
             y_down_arr.append(3)
         y_up.append(y_up_arr)
         y_down.append(y_down_arr)
-
 
 def check_dir(p):
     current_x, current_y, current_z = (9999, 9999, 9999)
@@ -100,7 +112,7 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = x_up[unit_y][unit_z] if current_x > 0 else x_down[(CUBE_DIMS[1]-1)-unit_y][(CUBE_DIMS[2]-1)-unit_z]
+        color = x_up[unit_y][unit_z] if current_x > 0 else x_down[unit_y][(CUBE_DIMS[2]-1)-unit_z]
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -116,13 +128,8 @@ def check_dir(p):
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = z_up[(CUBE_DIMS[1]-2)-unit_y][unit_x] if current_z > 0 else z_down[unit_y][unit_x]
+        color = z_up[(CUBE_DIMS[1]-1)-unit_y][unit_x] if current_z > 0 else z_down[unit_y][unit_x]
     return color
-
-
-cube_x = 0
-cube_y = 0
-cube_z = 0
 
 def create_cubes(CUBE_DIMS=(3,3,3)):
 
@@ -162,43 +169,6 @@ def create_cubes(CUBE_DIMS=(3,3,3)):
         cubes.append(cube)
     return cubes
         
-# Cube edges
-edges = [
-    (0, 1), (1, 2), (2, 3), (3, 0),
-    (4, 5), (5, 6), (6, 7), (7, 4),
-    (0, 4), (1, 5), (2, 6), (3, 7)
-]
-faces = [
-    (0, 1, 2, 3),  # Front
-    (4, 5, 6, 7),  # Back
-    (0, 1, 5, 4),  # Bottom
-    (2, 3, 7, 6),  # Top
-    (0, 3, 7, 4),  # Left
-    (1, 2, 6, 5),  # Right
-]
-
-# CUbe class, cube colors per face, refer to the color 
-class COLORS:
-    
-    GREEN = (0, 255, 0),  # Front (Green)
-    BLUE = (0, 0, 255),  # Back (Blue)
-    YELLOW = (255, 255, 0),  # Bottom (Yellow)
-    WHITE = (255, 255, 255),  # Top (White)
-    ORANGE = (255, 165, 0),  # Left (Orange)
-    RED = (255, 0, 0)   # Right (Red)
-
-COLORES = [
-    COLORS.GREEN,
-    COLORS.BLUE,
-    COLORS.YELLOW,
-    COLORS.WHITE,
-    COLORS.ORANGE,
-    COLORS.RED
-]
-                   
-
-
-
 def transform_point(point, rot_x, rot_y, rot_z, position):
     point.reshape(3,1)
     transform1 = np.array([[1, 0, 0],
@@ -217,7 +187,6 @@ def transform_point(point, rot_x, rot_y, rot_z, position):
     transformed_point += position
 
     return transformed_point.flatten()
-cube_pos = np.array([0, 0, 3000]) # z is distance from cam
 
 def project_points(xyz, FOV=45, aspect_ratio=1):
     FOV = radians(FOV)
@@ -231,28 +200,12 @@ def project_points(xyz, FOV=45, aspect_ratio=1):
 
     return (screen_x, screen_y)
 
-class Directional:
-    Z_UP = 0,
-    Z_DOWN = 1,
-    X_UP = 2,
-    X_DOWN = 3,
-    X_UP = 4,
-    Y_DOWN = 5,
-    Y_UP = 6
-    
-FORWARD = [[0, 0, 0],
-           [0, 0, 0], 
-           [0, 0, 0]]
-DOWNARDS = [[0, 0, 0],
-           [0, 0, 0], 
-           [0, 0, 0]]
-
 def accumulate_faces(cubes, faces=faces):
     accumulated_faces = []
     face_hashmap = {}
     for cube in cubes:
-        transformed_vertices = np.array([p for p in cube])
-        for i, face in enumerate(faces):
+        transformed_vertices = cube #looks like we transform before assinging and then transforming
+        for face in faces:
             face_points = [transformed_vertices[face[n]] for n in range(4)]
             sorted_points = sorted([tuple(np.round(point, 6)) for point in face_points])
             face_hash = str(sorted_points)
@@ -262,8 +215,7 @@ def accumulate_faces(cubes, faces=faces):
                 face_hashmap[face_hash] = [(face_points, check_dir(face_points))]
     for face_hash, face_list in face_hashmap.items():
         if len(face_list) == 1:
-            transformed_points = [transform_point(face_list[0][0][n], rot_x, rot_y, rot_z, cube_pos) for n in range(4)]
-            accumulated_faces.append((transformed_points, face_list[0][1]))
+            accumulated_faces.append((face_list[0][0], face_list[0][1]))
     
     return accumulated_faces
 
@@ -271,9 +223,11 @@ def sort_faces(accumulated_faces):
     average_z_value = []
     faces_with_colors = []
     for face, color in accumulated_faces:
-        faces_with_colors.append((face, color))
+        transformed_points = [transform_point(face[n], rot_x, rot_y, rot_z, cube_pos) for n in range(4)]
 
-        sum_z = sum(point[2] for point in face)
+        faces_with_colors.append((transformed_points, color))
+
+        sum_z = sum(point[2] for point in transformed_points)
         average_z_value.append(sum_z/4)
     
     paired = list(zip(average_z_value, faces_with_colors))
@@ -283,23 +237,22 @@ def sort_faces(accumulated_faces):
     _, sorted_faces_with_colors = zip(*paired)
     return list(sorted_faces_with_colors)
 
+
 running = True
+
+CUBE_DIMS = (3, 3, 3)
+cube_x = (CUBE_DIMS[0] - 1)/2
+cube_y = (CUBE_DIMS[1] - 1)/2
+cube_z = (CUBE_DIMS[2] - 1)/2
+cubes = create_cubes(CUBE_DIMS)
+gen_colors(CUBE_DIMS)
+accumulated_faces = accumulate_faces(cubes) # yay optimized :D
 
 
 rot_x = 0
 rot_y = 0
 rot_z = 0
-vel = 0.1
-cube_x = (CUBE_DIMS[0] - 1)/2
-cube_y = (CUBE_DIMS[1] - 1)/2
-cube_z = (CUBE_DIMS[2] - 1)/2
-cubes = create_cubes(CUBE_DIMS)
-
-gen_colors(CUBE_DIMS)
-
-print(x_up)
-print(y_down)
-print(z_up )
+vel = 0.05
 while running:
 
     clock.tick(60)
@@ -325,19 +278,20 @@ while running:
         
     screen.fill((0, 0, 0))
 
-    accumulated_faces = accumulate_faces(cubes)
     sorted_faces = sort_faces(accumulated_faces)
+
     for face, color in sorted_faces:
-        pygame.draw.polygon(screen, COLORES[color], [(project_points(face[n])[0], project_points(face[n])[1]) for n in range(4)])
+        # projecting once and accessing twice is better than projecting twice??
 
-
-    for cube in cubes:
-        transformed_vertices = np.array([transform_point(p, rot_x, rot_y, rot_z, cube_pos) for p in cube])
-        projected_vertices = [project_points(t, 45, 1) for t in transformed_vertices]
-        for index, edge in enumerate(edges):
-           pygame.draw.line(screen, (0, 0, 0), (projected_vertices[edge[0]][0], projected_vertices[edge[0]][1]), (projected_vertices[edge[1]][0], projected_vertices[edge[1]][1]), 4)
-
+        projected_points = [project_points(face[n]) for n in range(4)]
+        pygame.draw.polygon(screen, COLORES[color], [(projected_points[n]) for n in range(4)])
+        
+        for pair_index in range(len(projected_points)-1):
+          pygame.draw.line(screen, (0, 0, 0), projected_points[pair_index], projected_points[pair_index+1], 5)
+        # take face coords (projected), draw lines
+        # any way to just draw outline around the faces? seeing as its already sorted and transformed
+        
     pygame.display.flip()
-    clock.tick(120)
 
 pygame.quit()
+
