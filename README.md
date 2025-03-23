@@ -1,1 +1,7 @@
-Still very messy project, I might clean it up before I start implementing the AI, but first I need to add face turns and stuff
+Cube renderer in python! 
+
+Roadmap
+Render cube: ✅ 
+Assign faces and colors to cube: ✅
+Add face turns for cube: ❌
+Add RL model: ❌ 
