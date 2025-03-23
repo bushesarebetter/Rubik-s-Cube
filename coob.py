@@ -38,7 +38,7 @@ COLORES = [
     (255, 255, 255),
     (255, 165, 0),
     (255, 0, 0) 
-    ]
+]
                    
  
 
@@ -112,7 +112,7 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = x_up[unit_y][unit_z] if current_x > 0 else x_down[unit_y][(CUBE_DIMS[2]-1)-unit_z]
+        index, face_side = ((unit_y, unit_z), x_up) if current_x > 0 else ((unit_y, (CUBE_DIMS[2]-1)-unit_z), x_down)
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -121,15 +121,16 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
 
         # y is the x, z is the y
-        color = y_up[unit_x][unit_z] if current_y > 0 else y_down[(CUBE_DIMS[2]-1)-unit_z][unit_x]
+        index, face_side = ((unit_x, unit_z), y_up) if current_y > 0 else (((CUBE_DIMS[2]-1)-unit_z, unit_x), y_down)
     if not current_z == -9999:
         average_x = sum_x/800
         average_y = sum_y/800 
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        color = z_up[(CUBE_DIMS[1]-1)-unit_y][unit_x] if current_z > 0 else z_down[unit_y][unit_x]
-    return color
+        index, face_side = (((CUBE_DIMS[1]-1)-unit_y, unit_x), z_up) if current_z > 0 else ((unit_y, unit_x), z_down)
+
+    return index, face_side
 
 def create_cubes(CUBE_DIMS=(3,3,3)):
 
@@ -237,6 +238,15 @@ def sort_faces(accumulated_faces):
     _, sorted_faces_with_colors = zip(*paired)
     return list(sorted_faces_with_colors)
 
+def rotate_top():
+    n = len(y_up)
+    for i in range(n):
+        for j in range(i+1, n):
+            y_up[i][j], y_up[j][i] = y_up[j][i], y_up[i][j]
+    
+    for row in y_up:
+        row.reverse()
+
 
 running = True
 
@@ -246,7 +256,12 @@ cube_y = (CUBE_DIMS[1] - 1)/2
 cube_z = (CUBE_DIMS[2] - 1)/2
 cubes = create_cubes(CUBE_DIMS)
 gen_colors(CUBE_DIMS)
+
 accumulated_faces = accumulate_faces(cubes) # yay optimized :D
+
+y_up[0][0] = 5
+
+rotate_top()
 
 
 rot_x = 0
@@ -282,11 +297,14 @@ while running:
 
     for face, color in sorted_faces:
         # projecting once and accessing twice is better than projecting twice??
-
+        print(color)
+        # color[0] has index to pull from
+        # color[1] has array details 
         projected_points = [project_points(face[n]) for n in range(4)]
-        pygame.draw.polygon(screen, COLORES[color], [(projected_points[n]) for n in range(4)])
+        pygame.draw.polygon(screen, COLORES[color[1][color[0][0]][color[0][1]]], [(projected_points[n]) for n in range(4)])
         
         for pair_index in range(len(projected_points)-1):
+          
           pygame.draw.line(screen, (0, 0, 0), projected_points[pair_index], projected_points[pair_index+1], 5)
         # take face coords (projected), draw lines
         # any way to just draw outline around the faces? seeing as its already sorted and transformed
