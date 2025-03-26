@@ -31,23 +31,18 @@ edges = [
     (0, 4), (1, 5), (2, 6), (3, 7)
 ]
 
-COLORES = [
-    (0, 255, 0),
-    (0, 0, 255),
-    (255, 255, 0),
-    (255, 255, 255),
-    (255, 165, 0),
-    (255, 0, 0) 
-]
+
                    
  
 
-x_up = []
-x_down = []
-y_up = []
-y_down =[]
-z_up = []
-z_down = []
+face_colors = [
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+]
 
 def gen_colors(cube_dims: tuple[int, int, int]):
     for _ in range(cube_dims[1]):
@@ -56,8 +51,8 @@ def gen_colors(cube_dims: tuple[int, int, int]):
         for _ in range(cube_dims[2]):
             x_up_arr.append(0)
             x_down_arr.append(1)
-        x_up.append(x_up_arr)
-        x_down.append(x_down_arr)
+        face_colors[0].append(x_up_arr)
+        face_colors[1].append(x_down_arr)
 
         z_up_arr = []
         z_down_arr = []
@@ -65,16 +60,16 @@ def gen_colors(cube_dims: tuple[int, int, int]):
         for _ in range(cube_dims[0]):
             z_up_arr.append(4)
             z_down_arr.append(5)
-        z_up.append(z_up_arr)
-        z_down.append(z_down_arr)
+        face_colors[4].append(z_up_arr)
+        face_colors[5].append(z_down_arr)
     for _ in range(cube_dims[0]):
         y_up_arr = []
         y_down_arr = []
         for _ in range(cube_dims[2]):
             y_up_arr.append(2)
             y_down_arr.append(3)
-        y_up.append(y_up_arr)
-        y_down.append(y_down_arr)
+        face_colors[2].append(y_up_arr)
+        face_colors[3].append(y_down_arr)
 
 def check_dir(p):
     current_x, current_y, current_z = (9999, 9999, 9999)
@@ -112,7 +107,7 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        index, face_side = ((unit_y, unit_z), x_up) if current_x > 0 else ((unit_y, (CUBE_DIMS[2]-1)-unit_z), x_down)
+        index, face_side = ((unit_y, CUBE_DIM-1-unit_z), 0) if current_x > 0 else ((unit_y, (CUBE_DIMS[2]-1)-unit_z), 1)
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -121,14 +116,14 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
 
         # y is the x, z is the y
-        index, face_side = ((unit_x, unit_z), y_up) if current_y > 0 else (((CUBE_DIMS[2]-1)-unit_z, unit_x), y_down)
+        index, face_side = ((unit_x, CUBE_DIMS[2]-1-unit_z), 2) if current_y > 0 else ((unit_x, CUBE_DIMS[2]-1-unit_z), 3)
     if not current_z == -9999:
         average_x = sum_x/800
         average_y = sum_y/800 
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        index, face_side = (((CUBE_DIMS[1]-1)-unit_y, unit_x), z_up) if current_z > 0 else ((unit_y, unit_x), z_down)
+        index, face_side = (((CUBE_DIMS[1]-1)-unit_y, unit_x), 4) if current_z > 0 else ((unit_y, unit_x), 5)
 
     return index, face_side
 
@@ -237,37 +232,108 @@ def sort_faces(accumulated_faces):
         return []
     _, sorted_faces_with_colors = zip(*paired)
     return list(sorted_faces_with_colors)
+def find_associated(idx):
+    match idx:
+        case 0:
+            return ((5, 0), (2, 0), (4, 0), (3, 0), 0)
+        case 1:
+            return ((4, 1), (2, 0), (5, 1), (3, 0), 0)
+        case 2:
+            return ((5, 0), (0, 0), (4, 0), (1, 0), 0)
+        case 3:
+            return ((1, 0), (5, 0), (0, 0), (4, 0), 0)
+        case 4:
+            return ((0, 1), (2, 1), (1, 1), (3, 1), 0)
+        case 5:
+            return ((1, 1), (2, 1), (0, 1), (3, 1), CUBE_DIM-1)
+def shift_columns(faces, col_idx, direction='up'): # if col is 1 then extract col, if col is 0 then extract row
+    cols = []
+    for face, col in faces:
+        face = face_colors[face]
+        if col == 1:
+            for row in face:
+                print(row)
+                cols.append(row[col_idx])
+        else:
+            for item in face[col_idx]:
+                cols.append(item)
+    print(f'colected: {cols}')
+    if direction == 'up':
+        for _ in range(CUBE_DIM):
+            cols.append(cols.pop(0)) 
+    elif direction == 'down':
+        for _ in range(CUBE_DIM):
+            cols.insert(0, cols.pop())
+    i = 0
+    for face, col in faces:
+        face = face_colors[face]
+        if col == 1:
+            for row in face:
+                row[col_idx] = cols[i]
+                i+= 1
+        else:
+            for j in range(len(face[col_idx])):
+                face[col_idx][j] = cols[i]
+                i+= 1
+            
 
-def rotate_top():
-    n = len(y_up)
-    for i in range(n):
-        for j in range(i+1, n):
-            y_up[i][j], y_up[j][i] = y_up[j][i], y_up[i][j]
-    
-    for row in y_up:
-        row.reverse()
+    print(cols)
+
+    # we collect rows, columns, whatever, then we shift, then we look at each face and change each row/column
+
+def rotate(matrix_2d_idx, clockwise=True):
+    matrix_2d = face_colors[matrix_2d_idx]
+    faces = find_associated(matrix_2d_idx)
+    print(faces)
+    if clockwise:
+        matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
+        n = len(matrix_2d)
+        for j in range(n):
+            for i in range(n // 2):
+                matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
+        shift_columns([(faces[n][0], faces[n][1]) for n in range(4)], faces[4], 'up')
+
+    else:
+        n = len(matrix_2d)
+        for i in range(n):
+            for j in range(i+1, n):
+                matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
+        for row in matrix_2d:
+            row.reverse()
+
+        shift_columns([(faces[n][0], faces[n][1]) for n in range(4)], faces[4], 'down')
+
+COLORES = [
+    (0, 255, 0), # green
+    (0, 0, 255), # blue
+    (255, 255, 0), # yellow
+    (255, 255, 255), # white
+    (255, 165, 0), # orange
+    (255, 0, 0) # red
+]
 
 
 running = True
 
-CUBE_DIMS = (3, 3, 3)
+CUBE_DIMS = (CUBE_DIM, CUBE_DIM, CUBE_DIM)
 cube_x = (CUBE_DIMS[0] - 1)/2
 cube_y = (CUBE_DIMS[1] - 1)/2
 cube_z = (CUBE_DIMS[2] - 1)/2
 cubes = create_cubes(CUBE_DIMS)
 gen_colors(CUBE_DIMS)
 
+print(face_colors)
 accumulated_faces = accumulate_faces(cubes) # yay optimized :D
 
-y_up[0][0] = 5
 
-rotate_top()
+
 
 
 rot_x = 0
 rot_y = 0
 rot_z = 0
 vel = 0.05
+flag = False
 while running:
 
     clock.tick(60)
@@ -285,23 +351,38 @@ while running:
         rot_x += vel
     elif keys[pygame.K_DOWN]:
         rot_x -= vel
-    
+    if flag==False:   
+        if keys[pygame.K_f]: # red will always 'face' front
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(5, keys[pygame.K_LSHIFT])
+        if keys[pygame.K_b]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(4, not keys[pygame.K_LSHIFT])
+        if keys[pygame.K_r]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(1, not keys[pygame.K_LSHIFT])
+
+
+
     if abs(rot_x) > 2 * pi:
         rot_x = 0
     if abs(rot_y) > 2 * pi:
         rot_y = 0
-        
+    if flag==True and pygame.time.get_ticks() - starttime > 500:
+        flag = False
     screen.fill((0, 0, 0))
 
     sorted_faces = sort_faces(accumulated_faces)
 
     for face, color in sorted_faces:
         # projecting once and accessing twice is better than projecting twice??
-        print(color)
         # color[0] has index to pull from
         # color[1] has array details 
         projected_points = [project_points(face[n]) for n in range(4)]
-        pygame.draw.polygon(screen, COLORES[color[1][color[0][0]][color[0][1]]], [(projected_points[n]) for n in range(4)])
+        pygame.draw.polygon(screen, COLORES[face_colors[color[1]][color[0][0]][color[0][1]]], [(projected_points[n]) for n in range(4)])
         
         for pair_index in range(len(projected_points)-1):
           
