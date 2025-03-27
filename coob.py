@@ -5,7 +5,7 @@ from math import sin, cos, tan, radians, pi
 import json
 
 
-CUBE_DIM = 3 # IMPORTANT
+CUBE_DIM = 2 # IMPORTANT
 
 
 # Pygame setup
@@ -225,7 +225,7 @@ def sort_faces(accumulated_faces):
 
         sum_z = sum(point[2] for point in transformed_points)
         average_z_value.append(sum_z/4)
-    
+     
     paired = list(zip(average_z_value, faces_with_colors))
     paired.sort(reverse=True, key=lambda x: x[0])
     if not paired:
@@ -235,29 +235,38 @@ def sort_faces(accumulated_faces):
 def find_associated(idx):
     match idx:
         case 0:
-            return ((5, 1, 0), (2, 1, CUBE_DIM-1), (4, 1, 0), (3, 1, CUBE_DIM-1), False)
+            return ((5, 1, 0, 0), (2, 1, CUBE_DIM-1, 0), (4, 1, 0, 0), (3, 1, 0, 1), False)
         case 1:
-            return ((4, 1, CUBE_DIM-1), (2, 1, 0), (5, 1, CUBE_DIM-1), (3, 1, 0), False)
+            return ((4, 1, CUBE_DIM-1, 0), (2, 1, 0, 0), (5, 1, CUBE_DIM-1, 0), (3, 1, CUBE_DIM-1, 1), False)
         case 2:
-            return ((5, 0, CUBE_DIM-1), (0, 1, 0), (4, 0, CUBE_DIM-1), (1, 1, 0), True)
+            return ((5, 0, CUBE_DIM-1, 0), (0, 1, 0, 1), (4, 0, 0, 1), (1, 1, CUBE_DIM-1, 0), True)
         case 3:
-            return ((1, 1,CUBE_DIM-1), (5, 0, 0), (0, 1, CUBE_DIM-1), (4, 0, 0), True)
+            return ((1, 1, 0, 1), (5, 0, 0, 1), (0, 1, CUBE_DIM-1, 0), (4, 0, CUBE_DIM-1, 0), False)
         case 4:
-            return ((0, 0, CUBE_DIM-1), (2, 0, CUBE_DIM-1), (1, 0, CUBE_DIM-1), (3, 0, CUBE_DIM-1), True)
+            return ((0, 0, CUBE_DIM-1, 0), (2, 0, CUBE_DIM-1, 0), (1, 0, CUBE_DIM-1, 0), (3, 0, CUBE_DIM-1, 0), True)
         case 5:
-            return ((1, 0, 0), (2, 0, 0), (0, 0, 0), (3, 0, 0), False)
+            return ((1, 0, 0, 0), (2, 0, 0, 0), (0, 0, 0, 0), (3, 0, 0, 0), True)
 def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col is 0 then extract row
     cols = []
     print(faces)
-    for face, col, col_idx in faces:
+    for face, col, col_idx, reverse in faces:
         face = face_colors[face]
         if col == 1:
-            for row in face:
-                print(row)
-                cols.append(row[col_idx])
+            if reverse:
+                for row in reversed(face):
+                    print(row)
+                    cols.append(row[col_idx])
+            else:
+                for row in face:
+                    print(row)
+                    cols.append(row[col_idx])   
         else:
-            for item in face[col_idx]:
-                cols.append(item)
+            if reverse:
+                for item in reversed(face[col_idx]):
+                    cols.append(item)
+            else:
+                for item in face[col_idx]:
+                    cols.append(item)
     print(f'colected: {cols}')
     if direction == 'up':
         for _ in range(CUBE_DIM):
@@ -266,16 +275,26 @@ def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col
         for _ in range(CUBE_DIM):
             cols.insert(0, cols.pop())
     i = 0
-    for face, col, col_idx in faces:
+    for face, col, col_idx, reverse in faces:
         face = face_colors[face]
         if col == 1:
-            for row in face:
-                row[col_idx] = cols[i]
-                i+= 1
+            if reverse:
+                for row in reversed(face):
+                    row[col_idx] = cols[i]
+                    i+= 1
+            else:    
+                for row in face:
+                    row[col_idx] = cols[i]
+                    i+= 1
         else:
-            for j in range(len(face[col_idx])):
-                face[col_idx][j] = cols[i]
-                i+= 1
+            if reverse:
+                for j in reversed(range(len(face[col_idx]))):
+                    face[col_idx][j] = cols[i]
+                    i+= 1
+            else:
+                for j in range(len(face[col_idx])):
+                    face[col_idx][j] = cols[i]
+                    i+= 1
             
 
     print(cols)
@@ -300,7 +319,7 @@ def rotate(matrix_2d_idx, clockwise=True):
                     matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
             for row in matrix_2d:
                 row.reverse()
-        shift_columns([(faces[n][0], faces[n][1], faces[n][2]) for n in range(4)], 'up')
+        shift_columns([(faces[n][0], faces[n][1], faces[n][2], faces[n][3]) for n in range(4)], 'up')
 
     else:
         if faces[4]:
@@ -318,7 +337,7 @@ def rotate(matrix_2d_idx, clockwise=True):
                 for i in range(n // 2):
                     matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
 
-        shift_columns([(faces[n][0], faces[n][1], faces[n][2]) for n in range(4)], 'down')
+        shift_columns([(faces[n][0], faces[n][1], faces[n][2], faces[n][3]) for n in range(4)], 'down')
 
 COLORES = [
     (0, 255, 0), # green
