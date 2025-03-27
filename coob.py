@@ -106,8 +106,8 @@ def check_dir(p):
         average_y = sum_y/800 
         unit_z = int(average_z + cube_z)
         unit_y = int(average_y + cube_y)
-        # y is the x, z is the y
-        index, face_side = ((unit_y, CUBE_DIM-1-unit_z), 0) if current_x > 0 else ((unit_y, (CUBE_DIMS[2]-1)-unit_z), 1)
+        # y is the y, z is the x
+        index, face_side = ((unit_z, CUBE_DIM-1-unit_y), 0) if current_x > 0 else ((unit_z, unit_y), 1)
     if not current_y == -9999:
         average_x = sum_x/800
         average_z = sum_z/800 
@@ -116,14 +116,14 @@ def check_dir(p):
         unit_z = int(average_z + cube_z)
 
         # y is the x, z is the y
-        index, face_side = ((unit_x, CUBE_DIMS[2]-1-unit_z), 2) if current_y > 0 else ((unit_x, CUBE_DIMS[2]-1-unit_z), 3)
+        index, face_side = ((unit_z, unit_x), 2) if current_y > 0 else ((unit_z, CUBE_DIM-1-unit_x), 3)
     if not current_z == -9999:
         average_x = sum_x/800
         average_y = sum_y/800 
         unit_x = int(average_x + cube_x)
         unit_y = int(average_y + cube_y)
         # y is the x, z is the y
-        index, face_side = (((CUBE_DIMS[1]-1)-unit_y, unit_x), 4) if current_z > 0 else ((unit_y, unit_x), 5)
+        index, face_side = ((CUBE_DIM-1-unit_y, CUBE_DIM-1-unit_x), 4) if current_z > 0 else ((unit_y, CUBE_DIM-1-unit_x), 5)
 
     return index, face_side
 
@@ -235,20 +235,21 @@ def sort_faces(accumulated_faces):
 def find_associated(idx):
     match idx:
         case 0:
-            return ((5, 0), (2, 0), (4, 0), (3, 0), 0)
+            return ((5, 1, 0), (2, 1, CUBE_DIM-1), (4, 1, 0), (3, 1, CUBE_DIM-1), False)
         case 1:
-            return ((4, 1), (2, 0), (5, 1), (3, 0), 0)
+            return ((4, 1, CUBE_DIM-1), (2, 1, 0), (5, 1, CUBE_DIM-1), (3, 1, 0), False)
         case 2:
-            return ((5, 0), (0, 0), (4, 0), (1, 0), 0)
+            return ((5, 0, CUBE_DIM-1), (0, 1, 0), (4, 0, CUBE_DIM-1), (1, 1, 0), True)
         case 3:
-            return ((1, 0), (5, 0), (0, 0), (4, 0), 0)
+            return ((1, 1,CUBE_DIM-1), (5, 0, 0), (0, 1, CUBE_DIM-1), (4, 0, 0), True)
         case 4:
-            return ((0, 1), (2, 1), (1, 1), (3, 1), 0)
+            return ((0, 0, CUBE_DIM-1), (2, 0, CUBE_DIM-1), (1, 0, CUBE_DIM-1), (3, 0, CUBE_DIM-1), True)
         case 5:
-            return ((1, 1), (2, 1), (0, 1), (3, 1), CUBE_DIM-1)
-def shift_columns(faces, col_idx, direction='up'): # if col is 1 then extract col, if col is 0 then extract row
+            return ((1, 0, 0), (2, 0, 0), (0, 0, 0), (3, 0, 0), False)
+def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col is 0 then extract row
     cols = []
-    for face, col in faces:
+    print(faces)
+    for face, col, col_idx in faces:
         face = face_colors[face]
         if col == 1:
             for row in face:
@@ -265,7 +266,7 @@ def shift_columns(faces, col_idx, direction='up'): # if col is 1 then extract co
         for _ in range(CUBE_DIM):
             cols.insert(0, cols.pop())
     i = 0
-    for face, col in faces:
+    for face, col, col_idx in faces:
         face = face_colors[face]
         if col == 1:
             for row in face:
@@ -286,22 +287,38 @@ def rotate(matrix_2d_idx, clockwise=True):
     faces = find_associated(matrix_2d_idx)
     print(faces)
     if clockwise:
-        matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
-        n = len(matrix_2d)
-        for j in range(n):
-            for i in range(n // 2):
-                matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
-        shift_columns([(faces[n][0], faces[n][1]) for n in range(4)], faces[4], 'up')
+        if faces[4]:
+            matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
+            n = len(matrix_2d)
+            for j in range(n):
+                for i in range(n // 2):
+                    matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
+        else:
+            n = len(matrix_2d)
+            for i in range(n):
+                for j in range(i+1, n):
+                    matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
+            for row in matrix_2d:
+                row.reverse()
+        shift_columns([(faces[n][0], faces[n][1], faces[n][2]) for n in range(4)], 'up')
 
     else:
-        n = len(matrix_2d)
-        for i in range(n):
-            for j in range(i+1, n):
-                matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
-        for row in matrix_2d:
-            row.reverse()
+        if faces[4]:
+            n = len(matrix_2d)
+            for i in range(n):
+                for j in range(i+1, n):
+                    matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
+            for row in matrix_2d:
+                row.reverse()
+           
+        else:
+            matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
+            n = len(matrix_2d)
+            for j in range(n):
+                for i in range(n // 2):
+                    matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
 
-        shift_columns([(faces[n][0], faces[n][1]) for n in range(4)], faces[4], 'down')
+        shift_columns([(faces[n][0], faces[n][1], faces[n][2]) for n in range(4)], 'down')
 
 COLORES = [
     (0, 255, 0), # green
@@ -360,10 +377,24 @@ while running:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(4, not keys[pygame.K_LSHIFT])
-        if keys[pygame.K_r]:
+        if keys[pygame.K_l]:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(1, not keys[pygame.K_LSHIFT])
+        if keys[pygame.K_r]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(0, not keys[pygame.K_LSHIFT])
+        if keys[pygame.K_u]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(2, not keys[pygame.K_LSHIFT])
+        if keys[pygame.K_d]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(3, not keys[pygame.K_LSHIFT])
+
+
 
 
 
@@ -371,7 +402,7 @@ while running:
         rot_x = 0
     if abs(rot_y) > 2 * pi:
         rot_y = 0
-    if flag==True and pygame.time.get_ticks() - starttime > 500:
+    if flag==True and pygame.time.get_ticks() - starttime > 200:
         flag = False
     screen.fill((0, 0, 0))
 
