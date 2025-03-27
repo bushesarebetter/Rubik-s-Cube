@@ -1,11 +1,11 @@
-from unittest.util import sorted_list_difference
 import pygame
 import numpy as np
 from math import sin, cos, tan, radians, pi
 import json
 
 
-CUBE_DIM = 2 # IMPORTANT
+#TODO: DOUBLE TURNS (middle + face)
+CUBE_DIM = 3 # IMPORTANT
 
 
 # Pygame setup
@@ -248,17 +248,14 @@ def find_associated(idx):
             return ((1, 0, 0, 0), (2, 0, 0, 0), (0, 0, 0, 0), (3, 0, 0, 0), True)
 def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col is 0 then extract row
     cols = []
-    print(faces)
     for face, col, col_idx, reverse in faces:
         face = face_colors[face]
         if col == 1:
             if reverse:
                 for row in reversed(face):
-                    print(row)
                     cols.append(row[col_idx])
             else:
                 for row in face:
-                    print(row)
                     cols.append(row[col_idx])   
         else:
             if reverse:
@@ -267,7 +264,6 @@ def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col
             else:
                 for item in face[col_idx]:
                     cols.append(item)
-    print(f'colected: {cols}')
     if direction == 'up':
         for _ in range(CUBE_DIM):
             cols.append(cols.pop(0)) 
@@ -297,47 +293,67 @@ def shift_columns(faces, direction='up'): # if col is 1 then extract col, if col
                     i+= 1
             
 
-    print(cols)
 
     # we collect rows, columns, whatever, then we shift, then we look at each face and change each row/column
 
-def rotate(matrix_2d_idx, clockwise=True):
+def rotate(matrix_2d_idx, clockwise=True, assigned_idx=False):
     matrix_2d = face_colors[matrix_2d_idx]
     faces = find_associated(matrix_2d_idx)
-    print(faces)
-    if clockwise:
-        if faces[4]:
-            matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
-            n = len(matrix_2d)
-            for j in range(n):
-                for i in range(n // 2):
-                    matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
-        else:
-            n = len(matrix_2d)
-            for i in range(n):
-                for j in range(i+1, n):
-                    matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
-            for row in matrix_2d:
-                row.reverse()
-        shift_columns([(faces[n][0], faces[n][1], faces[n][2], faces[n][3]) for n in range(4)], 'up')
-
+    if assigned_idx:
+        #this is going to be painful
+        tuple_1 = faces[0]
+        tuple_2 = faces[1]
+        tuple_3 = faces[2]
+        tuple_4 = faces[3]
+        faces = ((tuple_1[0], tuple_1[1], 1, tuple_1[3]), 
+                     (tuple_2[0], tuple_2[1], 1, tuple_2[3]),
+                     (tuple_3[0], tuple_3[1], 1, tuple_3[3]),
+                     (tuple_4[0], tuple_4[1], 1, tuple_4[3]),
+                     faces[4]
+        )
     else:
-        if faces[4]:
-            n = len(matrix_2d)
-            for i in range(n):
-                for j in range(i+1, n):
-                    matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
-            for row in matrix_2d:
-                row.reverse()
-           
-        else:
-            matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
-            n = len(matrix_2d)
-            for j in range(n):
-                for i in range(n // 2):
-                    matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
+        if clockwise:
+            if faces[4]:
+                matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
+                n = len(matrix_2d)
+                for j in range(n):
+                    for i in range(n // 2):
+                        matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
+            else:
+                n = len(matrix_2d)
+                for i in range(n):
+                    for j in range(i+1, n):
+                        matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
+                for row in matrix_2d:
+                    row.reverse()
 
-        shift_columns([(faces[n][0], faces[n][1], faces[n][2], faces[n][3]) for n in range(4)], 'down')
+        else:
+            if faces[4]:
+                n = len(matrix_2d)
+                for i in range(n):
+                    for j in range(i+1, n):
+                        matrix_2d[i][j], matrix_2d[j][i] = matrix_2d[j][i], matrix_2d[i][j]
+                for row in matrix_2d:
+                    row.reverse()
+            
+            else:
+                matrix_2d[:] = [list(row) for row in zip(*matrix_2d)]
+                n = len(matrix_2d)
+                for j in range(n):
+                    for i in range(n // 2):
+                        matrix_2d[i][j], matrix_2d[n - 1 - i][j] = matrix_2d[n - 1 - i][j], matrix_2d[i][j]
+
+    shift_columns([(faces[n][0], faces[n][1], faces[n][2], faces[n][3]) for n in range(4)], 'up' if clockwise else 'down')
+def assign_moves(curr_face):
+    match curr_face:
+        case 5:
+            return (5, 4, 1, 0, 0)
+        case 4:
+            return (4, 5, 0, 1, pi)
+        case 1:
+            return (1, 0, 4, 5, pi/2)
+        case 0:
+            return (0, 1, 5, 4, -pi/2)
 
 COLORES = [
     (0, 255, 0), # green
@@ -358,18 +374,21 @@ cube_z = (CUBE_DIMS[2] - 1)/2
 cubes = create_cubes(CUBE_DIMS)
 gen_colors(CUBE_DIMS)
 
-print(face_colors)
 accumulated_faces = accumulate_faces(cubes) # yay optimized :D
 
 
 
 
 
-rot_x = 0
+rot_x = -pi/10
 rot_y = 0
 rot_z = 0
 vel = 0.05
 flag = False
+front_face = 0
+x_faces = (5, 0, 4, 1)
+assigned_moves = assign_moves(x_faces[front_face])
+
 while running:
 
     clock.tick(60)
@@ -391,19 +410,23 @@ while running:
         if keys[pygame.K_f]: # red will always 'face' front
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(5, keys[pygame.K_LSHIFT])
+            rotate(assigned_moves[0], keys[pygame.K_LSHIFT])
         if keys[pygame.K_b]:
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(4, not keys[pygame.K_LSHIFT])
+            rotate(assigned_moves[1], keys[pygame.K_LSHIFT])
         if keys[pygame.K_l]:
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(1, not keys[pygame.K_LSHIFT])
+            rotate(assigned_moves[2], keys[pygame.K_LSHIFT])
         if keys[pygame.K_r]:
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(0, not keys[pygame.K_LSHIFT])
+            rotate(assigned_moves[3],  keys[pygame.K_LSHIFT])
+        if keys[pygame.K_m]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
         if keys[pygame.K_u]:
             starttime = pygame.time.get_ticks()
             flag = True
@@ -411,15 +434,29 @@ while running:
         if keys[pygame.K_d]:
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(3, not keys[pygame.K_LSHIFT])
+            rotate(3, keys[pygame.K_LSHIFT])
+        
+        if keys[pygame.K_x]:
+            starttime = pygame.time.get_ticks()
+            flag = True
+            
+            front_face += -1 if keys[pygame.K_LSHIFT] else 1
+            if front_face == len(x_faces):
+                front_face = 0
+            if front_face < 0:
+                front_face = len(x_faces)-1
+
+            assigned_moves = assign_moves(x_faces[front_face])
+            rot_y = assigned_moves[4]
+            
+            rot_x=-pi/10
 
 
 
 
-
-    if abs(rot_x) > 2 * pi:
+    if abs(rot_x) > 2*pi:
         rot_x = 0
-    if abs(rot_y) > 2 * pi:
+    if abs(rot_y) > 2*pi:
         rot_y = 0
     if flag==True and pygame.time.get_ticks() - starttime > 200:
         flag = False
