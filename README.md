@@ -29,10 +29,6 @@ Scrambled 4x4 ^
 
 Scrambled 2x2 ^
 
-https://github.com/user-attachments/assets/1a5e24af-b097-4447-b323-37ce168d5bcd
-
-^ 2x2 showcase, probably not the best dimension to showcase face turns lol
-
 
 
 
