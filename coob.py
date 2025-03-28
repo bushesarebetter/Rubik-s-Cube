@@ -1,10 +1,10 @@
+from unittest.util import sorted_list_difference
 import pygame
 import numpy as np
 from math import sin, cos, tan, radians, pi
 import json
 
 
-#TODO: DOUBLE TURNS (middle + face)
 CUBE_DIM = 3 # IMPORTANT
 
 
@@ -411,18 +411,27 @@ while running:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(assigned_moves[0], keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(assigned_moves[0], keys[pygame.K_LSHIFT], True)
+
         if keys[pygame.K_b]:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(assigned_moves[1], keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(assigned_moves[1], keys[pygame.K_LSHIFT], True)
         if keys[pygame.K_l]:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(assigned_moves[2], keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
         if keys[pygame.K_r]:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(assigned_moves[3],  keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(assigned_moves[3], keys[pygame.K_LSHIFT], True)
         if keys[pygame.K_m]:
             starttime = pygame.time.get_ticks()
             flag = True
@@ -431,10 +440,14 @@ while running:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(2, not keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(2, not keys[pygame.K_LSHIFT], True)
         if keys[pygame.K_d]:
             starttime = pygame.time.get_ticks()
             flag = True
             rotate(3, keys[pygame.K_LSHIFT])
+            if keys[pygame.K_1]:
+                rotate(3, keys[pygame.K_LSHIFT], True)
         
         if keys[pygame.K_x]:
             starttime = pygame.time.get_ticks()
