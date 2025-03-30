@@ -435,7 +435,11 @@ while running:
         if keys[pygame.K_m]:
             starttime = pygame.time.get_ticks()
             flag = True
-            rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
+            if keys[pygame.K_1]:
+                rotate(assigned_moves[0], not keys[pygame.K_LSHIFT], True)
+            else:
+                rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
+
         if keys[pygame.K_u]:
             starttime = pygame.time.get_ticks()
             flag = True
