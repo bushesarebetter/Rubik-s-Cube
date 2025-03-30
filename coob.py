@@ -1,7 +1,7 @@
-from unittest.util import sorted_list_difference
+import random
 import pygame
 import numpy as np
-from math import sin, cos, tan, radians, pi
+from math import floor, sin, cos, tan, radians, pi
 import json
 
 
@@ -354,6 +354,15 @@ def assign_moves(curr_face):
             return (1, 0, 4, 5, pi/2)
         case 0:
             return (0, 1, 5, 4, -pi/2)
+def move(num):
+    #Num < 20
+    if num < 16:
+        rotate(assigned_moves[floor(num/4)], not (num % 2 == 0))
+        if not (floor(num/2) % 2 == 0):
+            rotate(assigned_moves[floor(num/4)], not (num % 2 == 0), True)
+    else:
+        rotate(assigned_moves[floor((num - 16)/2) * 2], num % 2 == 0, True)
+
 
 COLORES = [
     (0, 255, 0), # green
@@ -388,7 +397,7 @@ flag = False
 front_face = 0
 x_faces = (5, 0, 4, 1)
 assigned_moves = assign_moves(x_faces[front_face])
-
+generated_number = random.randint(0, 19)
 while running:
 
     clock.tick(60)
@@ -406,7 +415,12 @@ while running:
         rot_x += vel
     elif keys[pygame.K_DOWN]:
         rot_x -= vel
-    if flag==False:   
+
+    if flag==False:
+        flag = True
+        starttime = pygame.time.get_ticks()
+        move(generated_number)
+        ''' 
         if keys[pygame.K_f]: # red will always 'face' front
             starttime = pygame.time.get_ticks()
             flag = True
@@ -467,7 +481,7 @@ while running:
             rot_y = assigned_moves[4]
             
             rot_x=-pi/10
-
+        '''
 
 
 
@@ -475,7 +489,9 @@ while running:
         rot_x = 0
     if abs(rot_y) > 2*pi:
         rot_y = 0
-    if flag==True and pygame.time.get_ticks() - starttime > 200:
+    if flag==True and pygame.time.get_ticks() - starttime > 500:
+        generated_number = random.randint(0, 19)
+
         flag = False
     screen.fill((0, 0, 0))
 
