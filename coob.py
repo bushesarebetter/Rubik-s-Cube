@@ -2,7 +2,8 @@ import random
 import pygame
 import numpy as np
 from math import floor, sin, cos, tan, radians, pi
-import json
+from bot import RubiksBot
+
 
 
 CUBE_DIM = 3 # IMPORTANT
@@ -15,7 +16,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 cube_pos = np.array([0, 0, 3000]) # z is distance from cam
-
+MAX_STEPS = 4
 faces = [
     (0, 1, 2, 3),  # Front
     (4, 5, 6, 7),  # Back
@@ -45,6 +46,8 @@ face_colors = [
 ]
 
 def gen_colors(cube_dims: tuple[int, int, int]):
+    for n in range(len(face_colors)):
+        face_colors[n] = []
     for _ in range(cube_dims[1]):
         x_up_arr = []
         x_down_arr = []
@@ -354,14 +357,120 @@ def assign_moves(curr_face):
             return (1, 0, 4, 5, pi/2)
         case 0:
             return (0, 1, 5, 4, -pi/2)
+
+def calculate_error():
+    correct = 0
+    for idx in range(6):
+        face = face_colors[idx]
+        center_color = face[1][1] # specific to 3x3 cubes btw
+        for i in range(len(face)):
+            for j in range(len(face[i])):
+                if face[i][j] == center_color:
+                    correct += 1
+
+    return correct
+
+def reset(scramble_moves):
+    gen_colors((CUBE_DIM, CUBE_DIM, CUBE_DIM))
+
+    for _ in range(scramble_moves):
+        random_move = random.randint(0, 29)
+        move(random_move)
+def get_cube_state():
+    state = []
+    for face in face_colors:
+        for row in face:
+            state.extend(row)
+    state = np.array(state, dtype=np.float32)
+    return (state - 2.5) / 2.5
 def move(num):
     #Num < 20
+
     if num < 16:
         rotate(assigned_moves[floor(num/4)], not (num % 2 == 0))
         if not (floor(num/2) % 2 == 0):
             rotate(assigned_moves[floor(num/4)], not (num % 2 == 0), True)
     else:
-        rotate(assigned_moves[floor((num - 16)/2) * 2], num % 2 == 0, True)
+        if num < 24:
+            rotate(2 + floor((num-16)/4), not (num % 2 == 0), not floor(num/2) % 2 == 0 )
+        else:
+            rotate(assigned_moves[floor((num - 24)/2) * 2], num % 2 == 0, True)
+    # if statement hell
+    '''if num == 0:
+        print('F')
+    elif num == 1:
+        print("F'")
+    elif num == 2:
+        print('f')
+    elif num == 3:
+        print("f'")
+    elif num == 4:
+        print('B')
+    elif num == 5:
+        print("B'")
+    elif num == 6:
+        print('b')
+    elif num == 7:
+        print("b'")
+    elif num == 8:
+        print("L")
+    elif num == 9:
+        print("L'")
+    elif num == 10:
+        print("l")
+    elif num == 11:
+        print("l'")
+    elif num == 12:
+        print('R')
+    elif num == 13:
+        print("R'")
+    elif num == 14:
+        print("r")
+    elif num == 15:
+        print("r'")
+    elif num == 16:
+        print("U")
+    elif num == 17:
+        print("U'")
+    elif num == 18:
+        print("u")
+    elif num == 19:
+        print("u'")
+    elif num == 20:
+        print("D")
+    elif num == 21:
+        print("D'")
+    elif num == 22:
+        print("d")
+    elif num == 23:
+        print("d'")
+    elif num == 24:
+        print('M')
+    elif num == 25:
+        print("M'")
+    elif num == 26:
+        print("m")
+    elif num == 27:
+        print("m'")
+    elif num == 28:
+        print("Cube Solved?!")'''
+def step(action, total_steps):
+    prev_solved = calculate_error()
+    move(action)
+    new_solved = calculate_error()
+    next_state = get_cube_state()
+
+    reward = (new_solved - prev_solved) * 0.5
+
+    if new_solved == 54:
+        reward += 20.0
+    
+    done = new_solved == 54 or total_steps > MAX_STEPS - 1
+    if total_steps >= MAX_STEPS - 1:
+        reward -= 5.0
+    return next_state, reward, done
+
+ 
 
 
 COLORES = [
@@ -397,7 +506,17 @@ flag = False
 front_face = 0
 x_faces = (5, 0, 4, 1)
 assigned_moves = assign_moves(x_faces[front_face])
-generated_number = random.randint(0, 19)
+
+cube_bot = RubiksBot()
+training = False
+total_steps = 0
+episode = 0
+total_rewards = []
+current_loss = 0.0
+episode_reward = 0
+times_solved = 0
+reset(2)
+
 while running:
 
     clock.tick(60)
@@ -406,6 +525,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                training = not training
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         rot_y += vel
@@ -416,83 +538,44 @@ while running:
     elif keys[pygame.K_DOWN]:
         rot_x -= vel
 
-    if flag==False:
-        flag = True
-        starttime = pygame.time.get_ticks()
-        move(generated_number)
-        ''' 
-        if keys[pygame.K_f]: # red will always 'face' front
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(assigned_moves[0], keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(assigned_moves[0], keys[pygame.K_LSHIFT], True)
-
-        if keys[pygame.K_b]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(assigned_moves[1], keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(assigned_moves[1], keys[pygame.K_LSHIFT], True)
-        if keys[pygame.K_l]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(assigned_moves[2], keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
-        if keys[pygame.K_r]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(assigned_moves[3],  keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(assigned_moves[3], keys[pygame.K_LSHIFT], True)
-        if keys[pygame.K_m]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            if keys[pygame.K_1]:
-                rotate(assigned_moves[0], not keys[pygame.K_LSHIFT], True)
-            else:
-                rotate(assigned_moves[2], keys[pygame.K_LSHIFT], True)
-
-        if keys[pygame.K_u]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(2, not keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(2, not keys[pygame.K_LSHIFT], True)
-        if keys[pygame.K_d]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            rotate(3, keys[pygame.K_LSHIFT])
-            if keys[pygame.K_1]:
-                rotate(3, keys[pygame.K_LSHIFT], True)
-        
-        if keys[pygame.K_x]:
-            starttime = pygame.time.get_ticks()
-            flag = True
-            
-            front_face += -1 if keys[pygame.K_LSHIFT] else 1
-            if front_face == len(x_faces):
-                front_face = 0
-            if front_face < 0:
-                front_face = len(x_faces)-1
-
-            assigned_moves = assign_moves(x_faces[front_face])
-            rot_y = assigned_moves[4]
-            
-            rot_x=-pi/10
-        '''
-
-
-
     if abs(rot_x) > 2*pi:
         rot_x = 0
     if abs(rot_y) > 2*pi:
         rot_y = 0
-    if flag==True and pygame.time.get_ticks() - starttime > 500:
-        generated_number = random.randint(0, 19)
 
-        flag = False
+    if training:
+        action = cube_bot.act(get_cube_state())
+        next_state, reward, done = step(action, total_steps)
+        cube_bot.remember(get_cube_state(), action, reward, next_state, done)
+        total_steps += 1
+        if len(cube_bot.memory) > cube_bot.batch_size:
+            current_loss = cube_bot.replay()
+        else:
+            print(cube_bot.batch_size - len(cube_bot.memory))
+
+        if done:
+            reset(2)
+            if total_steps < MAX_STEPS:
+                print("Solved!")
+                times_solved += 1
+            print(f"Episode {episode}: {total_steps} moves, Reward: {reward}")
+            total_steps = 0
+            episode += 1
+            total_rewards.append(episode_reward)
+            episode_reward = 0
+
+        else:
+            episode_reward += reward
+        if episode % 10 and len(cube_bot.memory) > cube_bot.batch_size:
+            grads = [p.grad.norm().item() for p in cube_bot.q_net.parameters()]
+            print(f"Max gradient: {max(grads):.2f}, Min gradient: {min(grads):.2f}")
+            print(f"""
+                    Episode {episode}
+                    Avg Reward: {np.mean(total_rewards[-10:]):.1f}
+                    Epsilon: {cube_bot.epsilon:.3f}
+                    Buffer Size: {len(cube_bot.memory)}
+                    """)
+
     screen.fill((0, 0, 0))
 
     sorted_faces = sort_faces(accumulated_faces)
@@ -509,7 +592,23 @@ while running:
           pygame.draw.line(screen, (0, 0, 0), projected_points[pair_index], projected_points[pair_index+1], 5)
         # take face coords (projected), draw lines
         # any way to just draw outline around the faces? seeing as its already sorted and transformed
-        
+    font = pygame.font.SysFont("Arial", 24)
+    
+    debug_text = [
+        f"Episode: {episode}",
+        f"Loss: {current_loss:.4f}",
+        f"Moves: {total_steps}/{MAX_STEPS}",
+        f"Times solved: {times_solved}",
+        f"Epsilon: {cube_bot.epsilon:.3f}",
+        f"Avg Reward (last 10): {np.mean(total_rewards[-10:]):.1f}" if total_rewards else "Avg Reward: -",
+        f"Last Rewards: {total_rewards[-3:]}",  # Show recent rewards
+        f"Status: {'TRAINING' if training else 'PAUSED'}"
+    ]
+    
+    for i, text in enumerate(debug_text):
+        text_surface = font.render(text, True, (255, 255, 255))
+        screen.blit(text_surface, (10, 10 + i * 25))  # Stack lines vertically
+    
     pygame.display.flip()
 
 pygame.quit()
